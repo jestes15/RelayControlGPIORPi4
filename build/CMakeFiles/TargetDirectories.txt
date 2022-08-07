@@ -1,0 +1,3 @@
+/home/ubuntu/CodeProjects/pin_write_testing/build/CMakeFiles/main.dir
+/home/ubuntu/CodeProjects/pin_write_testing/build/CMakeFiles/edit_cache.dir
+/home/ubuntu/CodeProjects/pin_write_testing/build/CMakeFiles/rebuild_cache.dir

@@ -1,20 +1,15 @@
-#include <gpiod.h>
 #include <stdio.h>
 #include <unistd.h>
 
 #include <chrono>
 #include <thread>
 
+#include "auxillary.hpp"
+
 using namespace std::chrono_literals;
 
 int main(int argc, char **argv)
 {
-  const char *chipname = "gpiochip0";
-  struct gpiod_chip *chip;
-  struct gpiod_line *lineRed;    // Red LED
-  struct gpiod_line *lineGreen;  // Green LED
-  struct gpiod_line *lineYellow; // Yellow LED
-  struct gpiod_line *lineButton; // Pushbutton
   int i, val;
 
   // Open GPIO chip
