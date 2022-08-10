@@ -2,7 +2,9 @@
 #include <vector>
 #include <string>
 #include <type_traits>
+#include <utility>
 #include <map>
+#include <iostream>
 
 #define VERSION 0.2
 
@@ -15,7 +17,19 @@ struct bug_report
 {
     const char *err_txt;
     int err_val;
+
+    friend std::ostream& operator<<(std::ostream &out, bug_report &emp) {
+        out << "Error Number: " << emp.err_val << std::endl
+            << "Error Text: " << emp.err_txt << std::endl;
+        return out;
+    }
 };
+
+namespace init_gpiod_types
+{
+    typedef u_int64_t int_t;
+    ;
+}
 
 class init_gpiod
 {
@@ -29,8 +43,6 @@ private:
     std::vector<struct gpiod_chip *> chips;
 
     std::vector<struct bug_report> errors;
-
-    typedef u_int64_t int_t;
 
 public:
     init_gpiod() = delete;
@@ -55,9 +67,9 @@ public:
      * @return An instance to the class init_gpiod
      *
      */
-    init_gpiod(std::vector<const char *> chip_name, std::vector<std::vector<std::vector<std::pair<std::string, int_t>>>> lines_in)
+    init_gpiod(std::vector<const char *> chip_name, std::vector<std::vector<std::vector<std::pair<std::string, init_gpiod_types::int_t>>>> lines_in)
     {
-        for (int_t i = 0; i < chip_name.size(); ++i)
+        for (init_gpiod_types::int_t i = 0; i < chip_name.size(); ++i)
         {
             auto open_chip_ret_val = gpiod_chip_open_by_name(chip_name[i]);
 
@@ -79,13 +91,14 @@ public:
             if (chips.at(i) == NULL)
                 continue;
 
-            for (int_t j = 0; j < lines_in.at(i).at(0).size(); ++j)
+            for (init_gpiod_types::int_t j = 0; j < lines_in.at(i).at(0).size(); ++j)
             {
                 auto val = gpiod_chip_get_line(chips.at(i), lines_in.at(i).at(0).at(j).second);
 
                 if (val == NULL)
                 {
                     std::string err = "Could not get line: " + std::to_string(i);
+                    err.append("With name: " + lines_in.at(i).at(0).at(j).first);
                     bug_report err_struct = {
                         .err_txt = err.c_str(),
                         .err_val = NULL};
@@ -99,13 +112,17 @@ public:
                 }
             }
 
-            for (int_t j = 0; j < lines_in.at(i).at(1).size(); ++j)
+            for (init_gpiod_types::int_t j = 0; j < lines_in.at(i).at(1).size(); ++j)
             {
                 auto val = gpiod_chip_get_line(chips.at(i), lines_in.at(i).at(1).at(j).second);
+
+                std::cout << lines_in.at(i).at(1).at(j).first << std::endl;
+                std::cout << lines_in.at(i).at(1).at(j).second << std::endl;
 
                 if (val == NULL)
                 {
                     std::string err = "Could not get line: " + std::to_string(i);
+                    err.append("With name: " + lines_in.at(i).at(1).at(j).first);
                     bug_report err_struct = {
                         .err_txt = err.c_str(),
                         .err_val = NULL};
@@ -121,6 +138,24 @@ public:
         }
     }
 
+    ~init_gpiod()
+    {
+        for (auto [names, line] : input_lines)
+        {
+            gpiod_line_release(line);
+        }
+
+        for (auto [names, line] : output_lines)
+        {
+            gpiod_line_release(line);
+        }
+
+        for (auto i : chips)
+        {
+            gpiod_chip_close(i);
+        }
+    }
+
     /**
      *
      * @brief Initialize input lines
@@ -131,7 +166,7 @@ public:
     {
         int num_of_errors = 0;
 
-        for (int_t i = 0; i < this->input_lines.size(); ++i)
+        for (init_gpiod_types::int_t i = 0; i < this->input_lines.size(); ++i)
         {
             if (gpiod_line_request_input(input_lines[input_lines_names.at(i)], name) == -1)
             {
@@ -157,7 +192,7 @@ public:
     {
         int num_of_errors = 0;
 
-        for (int_t i = 0; i < this->input_lines_names.size(); ++i)
+        for (init_gpiod_types::int_t i = 0; i < this->input_lines_names.size(); ++i)
         {
             if (gpiod_line_request_output(output_lines[output_lines_names.at(i)], name, 0) == -1)
             {
@@ -180,7 +215,7 @@ public:
      * @return Amount of errors that occured during function runtime
      *
      */
-    int set_lines(std::vector<std::pair<std::string, int_t>> lines)
+    int set_lines(std::vector<std::pair<std::string, init_gpiod_types::int_t>> lines)
     {
         int num_of_errors = 0;
         for (auto [name, value] : lines)
@@ -243,5 +278,27 @@ public:
     std::vector<struct gpiod_chip *> get_chips()
     {
         return chips;
+    }
+
+    /**
+     *
+     * @brief Returns copy of the output_lines map
+     * @return vector of chips, even if empty
+     *
+     */
+    std::map<std::string, struct gpiod_line *> get_output_lines_map()
+    {
+        return output_lines;
+    }
+
+    /**
+     *
+     * @brief Returns copy of the chips vector
+     * @return vector of chips, even if empty
+     *
+     */
+    std::map<std::string, struct gpiod_line *> get_input_lines_map()
+    {
+        return input_lines;
     }
 };
