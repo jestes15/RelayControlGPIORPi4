@@ -16,14 +16,17 @@ using namespace std::chrono_literals;
 time_t rawtime;
 struct tm *timeinfo;
 
+const std::string CDT = "CDT";
+const std::string CST = "CST";
+
 struct CDT_TIME {
-    int begin_hour : 4 = 8;
-    int end_hour : 5 = 20;
+    unsigned begin_hour : 4 = 8;
+    unsigned end_hour : 5 = 20;
 } CDT_Time;
 
 struct CST_TIME {
-    int begin_hour : 4 = 7;
-    int end_hour : 5 = 19;
+    unsigned begin_hour : 4 = 7;
+    unsigned end_hour : 5 = 19;
 } CST_Time;
 
 struct time_get {
@@ -196,11 +199,11 @@ int main(int argc, char **argv)
 
         int begin, end;
 
-        if (timeinfo->tm_zone == "CDT")
+        if (!CDT.compare(timeinfo->tm_zone))
         {
             begin = CDT_Time.begin_hour;
             end = CDT_Time.end_hour;
-        } else if (timeinfo->tm_zone == "CST")
+        } else if (!CST.compare(timeinfo->tm_zone))
         {
             begin = CST_Time.begin_hour;
             end = CST_Time.end_hour;
