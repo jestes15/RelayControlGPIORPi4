@@ -16,6 +16,16 @@ using namespace std::chrono_literals;
 time_t rawtime;
 struct tm *timeinfo;
 
+struct CDT_TIME {
+    int begin_hour : 4 = 8;
+    int end_hour : 5 = 20;
+} CDT_Time;
+
+struct CST_TIME {
+    int begin_hour : 4 = 7;
+    int end_hour : 5 = 19;
+} CST_Time;
+
 struct time_get {
     public:
         friend std::ostream &operator<<(std::ostream &out, time_get &val)
@@ -65,7 +75,7 @@ struct time_get {
                     break;
             }
 
-            out << timeinfo_struct->tm_mday << " " << timeinfo_struct->tm_hour << ":" << timeinfo_struct->tm_min << ":" << timeinfo_struct->tm_sec << " ";
+            out << timeinfo_struct->tm_mday << " " << timeinfo_struct->tm_hour << ":" << timeinfo_struct->tm_min << ":" << timeinfo_struct->tm_sec << " " << timeinfo_struct->tm_zone << " ";
             return out;
         }
 } log_time;
@@ -76,6 +86,8 @@ struct mode
     bool day_is_enabled = false;
 } light_mode;
 
+
+
 int main(int argc, char **argv)
 {
     auto current_time = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
@@ -85,6 +97,10 @@ int main(int argc, char **argv)
 
     std::ofstream log_file;
     log_file.open(file_name);
+
+    std::cout << log_time;
+
+    return 1;
 
     // chip variables
     const char *chipname = "gpiochip0";
@@ -102,7 +118,7 @@ int main(int argc, char **argv)
     chip = gpiod_chip_open_by_name(chipname);
 
     if (chip != NULL)
-        log_file << log_time << "Successfully open chip" << std::endl;
+        log_file << log_time << "Successfully opened chip" << std::endl;
 
     // Open GPIO lines
     ceramicHeatLamp = gpiod_chip_get_line(chip, 2);
@@ -178,7 +194,19 @@ int main(int argc, char **argv)
         time(&rawtime);
         timeinfo = localtime(&rawtime);
 
-        if (timeinfo->tm_hour == 8 && timeinfo->tm_min == 0 && !light_mode.day_is_enabled)
+        int begin, end;
+
+        if (timeinfo->tm_zone == "CDT")
+        {
+            begin = CDT_Time.begin_hour;
+            end = CDT_Time.end_hour;
+        } else if (timeinfo->tm_zone == "CST")
+        {
+            begin = CST_Time.begin_hour;
+            end = CST_Time.end_hour;
+        }
+
+        if (timeinfo->tm_hour == begin && timeinfo->tm_min == 0 && !light_mode.day_is_enabled)
         {
             log_file << log_time << "Enabling day mode at: " << std::endl;
 
@@ -193,7 +221,7 @@ int main(int argc, char **argv)
             log_file << log_time << "Enabled day mode at: " << std::endl;
         }
 
-        if (timeinfo->tm_hour == 20 && timeinfo->tm_min == 0 && !light_mode.night_is_enabled)
+        if (timeinfo->tm_hour == end && timeinfo->tm_min == 0 && !light_mode.night_is_enabled)
         {
             log_file << log_time << "Enabling night mode at: " << std::endl;
 
